@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+	<script src="../js/jquery-2.1.0.js"></script>
+	<script src="../js/axios-0.18.0.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会议管理系统 - 管理员界面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#0FC6C2',
+                        neutral: '#F5F7FA',
+                        dark: '#1D2129',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .sidebar-item-active {
+                @apply bg-primary/10 text-primary border-l-4 border-primary;
+            }
+            .transition-custom {
+                @apply transition-all duration-300 ease-in-out;
+            }
+            .card-hover {
+                @apply hover:shadow-lg hover:-translate-y-1 transition-all duration-300;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-neutral min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-md z-10">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center">
+                <h1 class="text-xl md:text-2xl font-bold text-primary flex items-center">
+                    <i class="fa-solid fa-crown mr-2"></i>
+                    管理员管理系统
+                </h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-user-shield text-gray-600"></i>
+                    <span class="font-medium text-gray-700" id="current-admin-info">管理员</span>
+                </div>
+                <button id="logout-btn" class="text-dark hover:text-red-500 transition-custom">
+                    <i class="fa-solid fa-sign-out text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 左侧边栏 -->
+        <aside id="sidebar" class="bg-white shadow-md w-64 block transition-all duration-300 ease-in-out">
+            <nav class="py-4">
+                <div class="space-y-1 px-2">
+                    <a href="#user-management" class="sidebar-item-active flex items-center px-4 py-3 rounded-lg text-dark" data-target="user-management">
+                        <i class="fa-solid fa-users w-6"></i>
+                        <span class="ml-2">用户管理</span>
+                    </a>
+                    <a href="#meeting-management" class="flex items-center px-4 py-3 rounded-lg text-dark hover:bg-gray-100 transition-custom" data-target="meeting-management">
+                        <i class="fa-solid fa-calendar-check w-6"></i>
+                        <span class="ml-2">会议管理</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-4 lg:p-6 bg-neutral">
+            <!-- 页面标题 -->
+            <div class="mb-6">
+                <h2 id="page-title" class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark">用户管理</h2>
+                <p class="text-gray-500 mt-1">管理系统用户信息</p>
+            </div>
+
+            <!-- 用户管理卡片 -->
+            <div id="user-management" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                                    <h3 class="text-xl font-semibold text-dark mb-4 md:mb-0">用户列表</h3>
+                                    <div class="flex flex-col sm:flex-row gap-3">
+                                        <div class="relative">
+                                            <input type="text" id="user-search-input" placeholder="搜索用户..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-custom w-full sm:w-64">
+                                            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                        </div>
+										<select id="search-type" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-custom">
+										    <option value="name">按用户名</option>
+										    <option value="id">按ID</option>
+										</select>
+										<button id="search-user-btn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-custom">
+										    <i class="fa-solid fa-search mr-2"></i>
+										    搜索
+										</button>
+										<button id="reset-search-btn-user" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg flex items-center justify-center transition-custom">
+										    <i class="fa-solid fa-undo mr-2"></i>
+										    重置
+										</button>
+                                    </div>
+                                </div>
+                
+                                <!-- 用户表格 -->
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full bg-white rounded-lg">
+                                        <thead>
+                                            <tr class="border-b border-gray-200">
+                                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户名</th>
+                                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
+                                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200" id="user-table-body">
+                                            <!-- 用户数据将在这里动态加载 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                
+
+            </div>
+
+            <!-- 会议管理卡片 (默认隐藏) -->
+            <div id="meeting-management" class="bg-white rounded-xl shadow-sm p-6 hidden">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <h3 class="text-xl font-semibold text-dark mb-4 md:mb-0">会议列表</h3>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative">
+                            <input 
+								type="text" 
+								id="meeting-search-input" 
+								placeholder="输入会议ID搜索..." 
+								class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-custom w-full sm:w-64"
+							>
+							<!-- 添加搜索按钮点击事件的图标 -->
+							<button 
+								id="search-meeting-btn" 
+								class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary"
+							>
+								<i class="fa-solid fa-search"></i>
+							</button>
+                        </div>
+						<button 
+						    id="reset-search-btn-meeting"
+						    class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+						>
+						    <i class="fa-solid fa-refresh mr-1"></i> 重置
+						</button>
+                    </div>
+                </div>
+
+                
+
+                <!-- 会议表格 - 移除地点列 -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">会议名称</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建人</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">开始时间</th>
+								<th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">结束时间</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">报名/签到</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200" id="meeting-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-white py-4 border-t border-gray-200">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="text-sm text-gray-500">
+                    &copy; 2025 会议管理系统 - 管理员界面. 保留所有权利.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 模态框部分保持不变 -->
+    <!-- 模态框背景 -->
+    <div id="modal-bg" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center"></div>
+    
+    <!-- 登出确认模态框 -->
+    <div id="logout-modal" class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 z-50 hidden">...</div>
+    
+    
+    <!-- 添加会议模态框 -->
+    <div id="add-meeting-modal" class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 z-50 hidden">...</div>
+    
+    <!-- 编辑用户模态框 -->
+    <div id="edit-user-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md p-6 z-50 hidden">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-dark">编辑用户</h3>
+            <button class="text-gray-400 hover:text-gray-600" onclick="document.getElementById('modal-bg').classList.add('hidden'); document.getElementById('edit-user-modal').classList.add('hidden');">
+                <i class="fa-solid fa-times text-xl"></i>
+            </button>
+        </div>
+        <form id="edit-user-form">
+            <input type="hidden" id="edit-user-id">
+            <div class="mb-4">
+                <label for="edit-username" class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                <input type="text" id="edit-username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" required>
+            </div>
+            <div class="mb-4">
+                <label for="edit-password" class="block text-sm font-medium text-gray-700 mb-1">密码 (留空表示不修改)</label>
+                <input type="password" id="edit-password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+            </div>
+            <div class="mb-4">
+                <label for="edit-user-level" class="block text-sm font-medium text-gray-700 mb-1">用户角色</label>
+                <select id="edit-user-level" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary">
+                    <option value="user">普通用户</option>
+                    <option value="administrator">管理员</option>
+                </select>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-custom" onclick="document.getElementById('modal-bg').classList.add('hidden'); document.getElementById('edit-user-modal').classList.add('hidden');">
+                    取消
+                </button>
+                <button type="button" id="save-edit-user" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-custom">
+                    保存
+                </button>
+            </div>
+        </form>
+    </div>
+	
+	<!-- 编辑会议模态框 -->
+	<div id="edit-meeting-modal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md p-6 z-50 hidden">
+	    <div class="flex justify-between items-center mb-4">
+	        <h3 class="text-xl font-semibold text-dark">编辑会议</h3>
+	        <button class="text-gray-400 hover:text-gray-600" onclick="closeEditMeetingModal()">
+	            <i class="fa-solid fa-times text-xl"></i>
+	        </button>
+	    </div>
+	    <form id="edit-meeting-form">
+	        <input type="hidden" id="edit-meeting-id"> <!-- 存储会议ID -->
+	        
+	        <!-- 会议名称 -->
+	        <div class="mb-4">
+	            <label for="edit-meeting-name" class="block text-sm font-medium text-gray-700 mb-1">
+	                会议名称
+	            </label>
+	            <input 
+	                type="text" 
+	                id="edit-meeting-name" 
+	                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" 
+	                required 
+	                minlength="2" 
+	                maxlength="100"
+	            >
+	        </div>
+	
+	        <!-- 创建者ID（隐藏字段，通常通过后端权限获取，前端不直接暴露） -->
+	        <input type="hidden" id="edit-creator-id" required>
+	
+	        <!-- 会议开始时间 -->
+	        <div class="mb-4">
+	            <label for="edit-start-time" class="block text-sm font-medium text-gray-700 mb-1">
+	                开始时间
+	            </label>
+	            <input 
+	                type="datetime-local" 
+	                id="edit-start-time" 
+	                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" 
+	                required
+	            >
+	        </div>
+	
+	        <!-- 会议结束时间 -->
+	        <div class="mb-4">
+	            <label for="edit-end-time" class="block text-sm font-medium text-gray-700 mb-1">
+	                结束时间
+	            </label>
+	            <input 
+	                type="datetime-local" 
+	                id="edit-end-time" 
+	                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" 
+	                required
+	            >
+	        </div>
+	
+	        <!-- 会议密码 -->
+	        <div class="mb-4">
+	            <label for="edit-meeting-password" class="block text-sm font-medium text-gray-700 mb-1">
+	                访问密码（留空表示不修改）
+	            </label>
+	            <input 
+	                type="password" 
+	                id="edit-meeting-password" 
+	                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" 
+	                minlength="4" 
+	                maxlength="50"
+	            >
+	        </div>
+	
+	        <!-- 会议状态 -->
+	        <div class="mb-4">
+	            <label for="edit-is-opened" class="block text-sm font-medium text-gray-700 mb-1">
+	                会议状态
+	            </label>
+	            <select 
+	                id="edit-is-opened" 
+	                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" 
+	                required
+	            >
+	                <option value="false">未开启</option>
+	                <option value="true">已开启</option>
+	            </select>
+	        </div>
+	
+	        <!-- 操作按钮 -->
+	        <div class="flex justify-end space-x-3 mt-6">
+	            <button 
+	                type="button" 
+	                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-custom" 
+	                onclick="closeEditMeetingModal()"
+	            >
+	                取消
+	            </button>
+	            <button 
+	                type="button" 
+	                class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-custom"
+					onclick="saveEditMeeting()"
+	            >
+	                保存修改
+	            </button>
+	        </div>
+	    </form>
+	</div>
+
+    <script>
+        // 防止重复绑定的标志变量
+        let isMeetingSearchSetup = false;
+        let isUserSearchSetup = false;
+        
+        // 等待DOM加载完成
+        
+            document.addEventListener('DOMContentLoaded', function() {
+                // 添加logout按钮点击事件
+                initializeAdminInfo();
+
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        // 清除认证信息
+                        localStorage.removeItem('token');
+                        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                        // 跳转到登录页面
+                        window.location.href = '/html/login.html';
+                    });
+                }
+        
+                // 功能切换逻辑
+                const navLinks = document.querySelectorAll('aside [data-target]');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // 获取目标内容区域ID
+                        const targetId = this.getAttribute('data-target');
+                        
+                        // 隐藏所有内容区域，只显示目标区域
+                        document.querySelectorAll('main > div[id]').forEach(section => {
+                            section.classList.add('hidden');
+                        });
+                        document.getElementById(targetId).classList.remove('hidden');
+                        
+                        // 更新页面标题
+                        const pageTitle = document.getElementById('page-title');
+                        const pageSubtitle = pageTitle.nextElementSibling;
+                        
+                        if (targetId === 'user-management') {
+                            pageTitle.textContent = '用户管理';
+                            pageSubtitle.textContent = '管理系统用户信息';
+                            setupSearchFunction();
+                            loadUsers();
+                        } else if (targetId === 'meeting-management') {
+                            pageTitle.textContent = '会议管理';
+                            pageSubtitle.textContent = '管理系统会议信息';
+                            setupMeetingSearch();
+                            loadMeetings();
+                        }
+        
+                        // **关键修正：统一移除和添加活动类名**
+                        navLinks.forEach(el => {
+                            // 移除所有活动状态类（确保类名与CSS一致）
+                            el.classList.remove('sidebar-item-active'); 
+                        });
+                        
+                        // 为当前元素添加活动状态
+                        this.classList.add('sidebar-item-active');
+                    });
+                });
+        
+                // **初始化高亮状态：设置用户管理为初始高亮**
+                const defaultLink = document.querySelector('a[data-target="user-management"]');
+                defaultLink.classList.add('sidebar-item-active');
+        
+                // 页面加载时初始化用户管理页面
+                setupSearchFunction();
+                loadUsers();
+            });
+
+		
+		// 加载用户数据的函数
+		function loadUsers() {
+		    const userTableBody = document.getElementById('user-table-body');
+		    // 清空现有内容
+		    userTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">正在加载用户数据...</td></tr>';
+		    
+		    // 使用Axios发送请求获取用户数据
+		    axios.get('/admin/select')
+		        .then(function(response) {
+		            // 请求成功
+		            if (response.data && response.data.code === 1 && response.data.data) {
+		                // 清空加载提示
+		                userTableBody.innerHTML = '';
+		                
+		                // 遍历用户数据并添加到表格中
+		                response.data.data.forEach(function(user) {
+		                    const row = document.createElement('tr');
+		                    row.className = 'hover:bg-gray-50 transition-custom';
+		                    
+		                    // 设置行内容
+		                    row.innerHTML = `
+		                        <td class="py-3 px-4 text-sm text-gray-900">${user.userID}</td>
+		                        <td class="py-3 px-4 text-sm text-gray-900 font-medium">${user.username}</td>
+		                        <td class="py-3 px-4 text-sm">
+		                            <span class="px-2 py-1 text-xs rounded-full ${user.level === 'administrator' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}">
+		                                ${user.level === 'administrator' ? '管理员' : '普通用户'}
+		                            </span>
+		                        </td>
+		                        <td class="py-3 px-4 text-sm">
+		                            <div class="flex space-x-2">
+		                                <button class="text-primary hover:text-primary/80 transition-custom edit-user" data-id="${user.userID}">
+		                                    <i class="fa-solid fa-edit"></i>
+		                                </button>
+		                                <button class="text-red-500 hover:text-red-700 transition-custom delete-user" data-id="${user.userID}">
+		                                    <i class="fa-solid fa-trash"></i>
+		                                </button>
+		                            </div>
+		                        </td>
+		                    `;
+		                    
+		                    // 添加到表格中
+		                    userTableBody.appendChild(row);
+		                });
+		                
+		                // 如果没有数据
+		                if (response.data.data.length === 0) {
+		                    userTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">暂无用户数据</td></tr>';
+		                }
+		                
+		                // 添加编辑和删除按钮的事件监听
+		                setupUserActions();
+		            } else {
+		                // 请求成功但数据异常
+		                userTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">加载用户数据失败</td></tr>';
+		                console.error('加载用户数据失败:', response.data ? response.data.msg : '未知错误');
+		            }
+		        })
+		        .catch(function(error) {
+		            // 请求失败
+		            userTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">加载用户数据出错</td></tr>';
+		            console.error('加载用户数据出错:', error);
+		        });
+		}
+		
+		// 设置用户操作按钮的事件
+		function setupUserActions() {
+		    // 编辑用户按钮
+		    document.querySelectorAll('.edit-user').forEach(button => {
+		        button.addEventListener('click', function() {
+		            const userId = this.getAttribute('data-id');
+		            // 获取用户数据并打开编辑模态框
+		            axios.get('/admin/select')
+		                .then(function(response) {
+		                    if (response.data && response.data.code === 1 && response.data.data) {
+		                        // 查找当前用户数据
+		                        const userData = response.data.data.find(user => user.userID == userId);
+		                        if (userData) {
+		                            // 填充表单数据
+		                            document.getElementById('edit-user-id').value = userData.userID;
+		                            document.getElementById('edit-username').value = userData.username;
+		                            document.getElementById('edit-user-level').value = userData.level;
+		                            
+		                            // 显示模态框
+		                            document.getElementById('modal-bg').classList.remove('hidden');
+		                            document.getElementById('edit-user-modal').classList.remove('hidden');
+		                        } else {
+		                            alert('未找到用户数据');
+		                        }
+		                    } else {
+		                        alert('获取用户数据失败');
+		                    }
+		                })
+		                .catch(function(error) {
+		                    alert('获取用户数据请求失败');
+		                    console.error('获取用户数据请求失败:', error);
+		                });
+		        });
+		    });
+		    
+		// 保存编辑用户按钮事件
+    const saveButton = document.getElementById('save-edit-user');
+    if (!saveButton.hasAttribute('data-event-bound')) {
+        saveButton.addEventListener('click', function() {
+            const userId = document.getElementById('edit-user-id').value;
+            const username = document.getElementById('edit-username').value;
+            const password = document.getElementById('edit-password').value;
+            const level = document.getElementById('edit-user-level').value;
+            
+            if (!username) {
+                alert('用户名不能为空');
+                return;
+            }
+            
+            // 构建用户数据对象
+            const userData = {
+                userID: userId,
+                username: username,
+                level: level
+            };
+            
+            // 如果密码不为空，则更新密码
+            if (password) {
+                userData.password = password;
+            }
+            
+            // 发送更新请求
+            axios.post('/admin/update', userData)
+                .then(function(response) {
+                    if (response.data && response.data.code === 1) {
+                        alert('更新成功！');
+                        // 关闭模态框
+                        document.getElementById('modal-bg').classList.add('hidden');
+                        document.getElementById('edit-user-modal').classList.add('hidden');
+                        // 重新加载用户列表
+                        loadUsers();
+                    } else {
+                        alert('更新失败: ' + (response.data ? response.data.msg : '未知错误'));
+                    }
+                })
+                .catch(function(error) {
+                    alert('更新请求失败');
+                    console.error('更新用户请求失败:', error);
+                });
+        });
+        saveButton.setAttribute('data-event-bound', 'true');
+    }
+		
+		// 删除用户按钮
+		document.querySelectorAll('.delete-user').forEach(button => {
+		    button.addEventListener('click', function() {
+		        const userId = this.getAttribute('data-id');
+		        if (confirm('确定要删除用户ID: ' + userId + ' 吗？')) {
+		            // 发送删除请求
+		            axios.post('/admin/delete', { userID: userId })
+		                .then(function(response) {
+		                    if (response.data && response.data.code === 1) {
+		                        alert('删除成功！');
+		                        // 重新加载用户列表
+		                        loadUsers();
+		                    } else {
+		                        alert('删除失败: ' + (response.data ? response.data.msg : '未知错误'));
+		                    }
+		                })
+		                .catch(function(error) {
+		                    alert('删除请求失败');
+		                    console.error('删除用户请求失败:', error);
+		                });
+		        }
+		    });
+		});
+		}
+		
+
+		// 获取并显示当前管理员信息
+        function initializeAdminInfo() {
+            // 调用新的后端接口获取当前用户信息
+            axios.get('/Meetings/GetUserName', {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.data && response.data.code === 1) {
+                    const user = response.data.data;
+                    const adminInfoElement = document.getElementById('current-admin-info');
+                    
+                    if (user && user.username) {
+                        adminInfoElement.textContent = `欢迎，${user.username}`;
+                    } else {
+                        adminInfoElement.textContent = '管理员';
+                    }
+                } else {
+                    console.error('获取管理员信息失败:', response.data);
+                    document.getElementById('current-admin-info').textContent = '管理员';
+                }
+            })
+            .catch(error => {
+                console.error('获取管理员信息时发生错误:', error);
+                document.getElementById('current-admin-info').textContent = '管理员';
+            });
+        }
+
+
+		// 设置搜索功能
+        function setupSearchFunction() {
+            // 防止重复绑定
+            if (isUserSearchSetup) return;
+            
+            const searchInput = document.getElementById('user-search-input');
+            const searchType = document.getElementById('search-type');
+            const searchButton = document.getElementById('search-user-btn');
+            const resetButton = document.getElementById('reset-search-btn-user');
+            
+            // 搜索按钮点击事件
+            searchButton.addEventListener('click', function() {
+                performSearch();
+            });
+            
+            // 输入框回车事件
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+            
+            // 重置按钮点击事件
+            resetButton.addEventListener('click', function() {
+                searchInput.value = '';
+                loadUsers(); // 重新加载所有用户
+            });
+            
+            // 标记已设置
+            isUserSearchSetup = true;
+		    
+		    // 执行搜索
+            function performSearch() {
+		        const searchValue = searchInput.value.trim();
+		        if (!searchValue) {
+		            alert('请输入搜索内容');
+		            return;
+		        }
+		        
+		        const type = searchType.value;
+		        const userTableBody = document.getElementById('user-table-body');
+		        
+		        // 显示加载中
+		        userTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">正在搜索用户数据...</td></tr>';
+		        
+		        // 根据搜索类型选择不同的API
+		        let apiUrl = '';
+		        let params = {};
+		        
+		        if (type === 'id') {
+		            // 按ID搜索
+		            apiUrl = '/admin/selectUserByID';
+		            params = { userID: searchValue };
+		        } else {
+		            // 按用户名搜索
+		            apiUrl = '/admin/selectUserByname';
+		            params = { username: searchValue };
+		        }
+		        
+		        // 发送搜索请求
+		        axios.post(apiUrl, params)
+		            .then(function(response) {
+		                // 请求成功
+		                if (response.data && response.data.code === 1 && response.data.data) {
+		                    // 清空加载提示
+		                    userTableBody.innerHTML = '';
+		                    
+		                    // 处理返回的数据
+		                    const userData = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
+		                    
+		                    // 遍历用户数据并添加到表格中
+		                    userData.forEach(function(user) {
+		                        const row = document.createElement('tr');
+		                        row.className = 'hover:bg-gray-50 transition-custom';
+		                        
+		                        // 设置行内容
+		                        row.innerHTML = `
+		                            <td class="py-3 px-4 text-sm text-gray-900">${user.userID}</td>
+		                            <td class="py-3 px-4 text-sm text-gray-900 font-medium">${user.username}</td>
+		                            <td class="py-3 px-4 text-sm">
+		                                <span class="px-2 py-1 text-xs rounded-full ${user.level === 'administrator' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}">
+		                                    ${user.level === 'administrator' ? '管理员' : '普通用户'}
+		                                </span>
+		                            </td>
+		                            <td class="py-3 px-4 text-sm">
+		                                <div class="flex space-x-2">
+		                                    <button class="text-primary hover:text-primary/80 transition-custom edit-user" data-id="${user.userID}">
+		                                        <i class="fa-solid fa-edit"></i>
+		                                    </button>
+		                                    <button class="text-red-500 hover:text-red-700 transition-custom delete-user" data-id="${user.userID}">
+		                                        <i class="fa-solid fa-trash"></i>
+		                                    </button>
+		                                </div>
+		                            </td>
+		                        `;
+		                        
+		                        // 添加到表格中
+		                        userTableBody.appendChild(row);
+		                    });
+		                    
+		                    // 如果没有数据
+		                    if (userData.length === 0) {
+		                        userTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">未找到匹配的用户</td></tr>';
+		                    } else {
+		                        // 添加编辑和删除按钮的事件监听
+		                        setupUserActions();
+		                    }
+		                } else {
+		                    // 请求成功但数据异常
+		                    userTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">未找到匹配的用户</td></tr>';
+		                    console.error('搜索用户数据失败:', response.data ? response.data.msg : '未知错误');
+		                }
+		            })
+		            .catch(function(error) {
+		                // 请求失败
+		                userTableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4">搜索用户数据出错</td></tr>';
+		                console.error('搜索用户数据出错:', error);
+		            });
+		    }
+		}
+		
+		// 加载会议数据的函数
+		function loadMeetings() {
+		    const meetingTableBody = document.getElementById('meeting-table-body');
+		    // 清空现有内容并显示加载状态
+		    meetingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">正在加载会议数据...</td></tr>';
+		    
+		    // 使用Axios发送请求获取会议数据
+		    axios.get('/admin/SelectAllMeetings')
+		        .then(function(response) {
+		            // 请求成功
+		            if (response.data && response.data.code === 1 && response.data.data) {
+		                // 清空加载提示
+		                meetingTableBody.innerHTML = '';
+		                
+		                // 遍历会议数据并添加到表格中
+		                const meetings = response.data.data;
+		                if (meetings.length === 0) {
+		                    meetingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">暂无会议数据</td></tr>';
+		                    return;
+		                }
+		                
+		                // 批量获取所有会议的参与情况
+		                const meetingIds = meetings.map(m => m.meetingID);
+		                getMeetingsParticipation(meetingIds)
+		                    .then(participationMap => {
+		                        // 填充表格数据
+		                        meetings.forEach(function(meeting) {
+		                            meetingTableBody.appendChild(createMeetingRow(meeting, participationMap));
+		                        });
+		                    })
+		                    .catch(error => {
+		                        // 参与数据获取失败，正常显示会议但参与数据显示为问号
+		                        meetings.forEach(function(meeting) {
+		                            meetingTableBody.appendChild(createMeetingRow(meeting, {}));
+		                        });
+		                        console.error('获取会议参与数据失败:', error);
+		                    });
+		            } else {
+		                // 请求成功但数据异常
+		                meetingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">加载会议数据失败</td></tr>';
+		                console.error('加载会议数据失败:', response.data ? response.data.msg : '未知错误');
+		            }
+		        })
+		        .catch(function(error) {
+		            // 请求失败
+		            meetingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">加载会议数据出错</td></tr>';
+		            console.error('加载会议数据出错:', error);
+		        });
+		}
+		
+		// 创建会议表格行的辅助函数
+		function createMeetingRow(meeting, participationMap) {
+		    const row = document.createElement('tr');
+		    row.className = 'hover:bg-gray-50 transition-custom';
+		    
+		    // 格式化日期时间
+		    const startTime = formatDateTime(meeting.startTime);
+		    const endTime = formatDateTime(meeting.endTime);
+		    
+		    // 获取参与情况数据
+		    const participation = participationMap[meeting.meetingID] || { 
+		        total: 0, 
+		        attended: 0 
+		    };
+		    
+		    // 格式化状态标签
+		    const statusClass = meeting.isOpened ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+		    const statusText = meeting.isOpened ? '已开启' : '未开启';
+		    
+		    // 设置行内容 - 直接在HTML中绑定事件处理函数
+		    row.innerHTML = `
+		        <td class="py-3 px-4 text-sm text-gray-900">${meeting.meetingID}</td>
+		        <td class="py-3 px-4 text-sm text-gray-900 font-medium">${meeting.meetingName}</td>
+		        <td class="py-3 px-4 text-sm">${meeting.creatorID || '未知'}</td>
+		        <td class="py-3 px-4 text-sm text-gray-500">${startTime}</td>
+		        <td class="py-3 px-4 text-sm text-gray-500">${endTime}</td>
+		        <td class="py-3 px-4 text-sm">
+		            <div class="flex items-center space-x-2">
+		                <span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>
+		                <button class="text-primary hover:text-primary/80 transition-custom text-sm flex items-center attendance-count" onclick="viewMeetingAttendance(${meeting.meetingID})">
+		                    ${participation.total}/${participation.attended} <i class="fa-solid fa-users ml-1"></i>
+		                </button>
+		            </div>
+		        </td>
+		        <td class="py-3 px-4 text-sm">
+		            <div class="flex space-x-2">
+		                <button class="text-primary hover:text-primary/80 transition-custom edit-meeting" onclick="editMeeting(${meeting.meetingID})">
+		                    <i class="fa-solid fa-edit"></i>
+		                </button>
+		                <button class="text-red-500 hover:text-red-700 transition-custom delete-meeting" onclick="deleteMeeting(${meeting.meetingID})">
+		                    <i class="fa-solid fa-trash"></i>
+		                </button>
+		            </div>
+		        </td>
+		    `;
+		    
+		    return row;
+		}
+		
+		// 批量获取多个会议的参与情况
+		function getMeetingsParticipation(meetingIds) {
+		    return new Promise((resolve, reject) => {
+		        if (!meetingIds || meetingIds.length === 0) {
+		            resolve({});
+		            return;
+		        }
+		        
+		        // 为每个会议ID发送请求
+		        const requests = meetingIds.map(id => 
+		            axios.post('/admin/ParticipationOfMeeting', {meetingID: id})
+		                .then(response => {
+		                    if (response.data && response.data.code === 1 && response.data.data) {
+		                        const participationData = response.data.data;
+		                        // 统计总报名人数和签到人数
+		                        const total = participationData['Participation'];
+		                        const attended = participationData['SignIn'];
+		                        return { id, total, attended };
+		                    }
+		                    return { id, total: 0, attended: 0 };
+		                })
+		                .catch(error => {
+		                    console.error(`获取会议 ${id} 参与数据失败:`, error);
+		                    return { id, total: 0, attended: 0 };
+		                })
+		        );
+		        
+		        // 等待所有请求完成
+		        Promise.all(requests)
+		            .then(results => {
+		                // 转换为ID到参与数据的映射
+		                const participationMap = results.reduce((map, result) => {
+		                    map[result.id] = { total: result.total, attended: result.attended };
+		                    return map;
+		                }, {});
+		                resolve(participationMap);
+		            })
+		            .catch(error => {
+		                reject(error);
+		            });
+		    });
+		}
+		
+		// 编辑会议函数 - 直接作为全局函数
+		function editMeeting(meetingID) {
+		    // 获取会议数据并打开编辑模态框
+		    axios.get(`/admin/SelectAllMeetings`)
+		        .then(response => {
+		            if (response.data && response.data.code === 1 && response.data.data) {
+		                const meetingData = response.data.data.find(meeting => meeting.meetingID == meetingID);
+		                if (meetingData) {
+		                    // 填充表单数据
+		                    document.getElementById('edit-meeting-id').value = meetingData.meetingID;
+		                    document.getElementById('edit-meeting-name').value = meetingData.meetingName;
+		                    document.getElementById('edit-creator-id').value = meetingData.creatorID;
+		                    document.getElementById('edit-start-time').value = formatDateTime(meetingData.startTime);
+		                    document.getElementById('edit-end-time').value = formatDateTime(meetingData.endTime);
+		                    document.getElementById('edit-is-opened').value = meetingData.isOpened.toString();
+		                    
+		                    // 显示模态框
+		                    document.getElementById('modal-bg').classList.remove('hidden');
+		                    document.getElementById('edit-meeting-modal').classList.remove('hidden');
+		                } else {
+		                    alert('未找到会议数据');
+		                }
+		            } else {
+		                alert('请求会议数据失败');
+		            }
+		        })
+		        .catch(error => {
+		            alert('获取会议数据请求失败');
+		            console.error('获取会议数据请求失败:', error);
+		        });
+		}
+		
+		// 保存编辑会议函数 - 直接作为全局函数
+		function saveEditMeeting() {
+		    const meetingId = document.getElementById('edit-meeting-id').value;
+		    const meetingName = document.getElementById('edit-meeting-name').value;
+		    const creatorId = document.getElementById('edit-creator-id').value;
+		    const startTime = document.getElementById('edit-start-time').value;
+		    const endTime = document.getElementById('edit-end-time').value;
+		    const password = document.getElementById('edit-meeting-password').value;
+		    const isOpened = document.getElementById('edit-is-opened').value === 'true';
+		
+		    // 表单验证
+		    if (!meetingName) {
+		        alert('会议名称不能为空');
+		        return;
+		    }
+		
+		    if (!startTime || !endTime) {
+		        alert('请选择会议开始和结束时间');
+		        return;
+		    }
+		
+		    if (new Date(endTime) <= new Date(startTime)) {
+		        alert('结束时间必须晚于开始时间');
+		        return;
+		    }
+		
+		    // 构建会议数据对象
+		    const meetingData = {
+		        meetingID: parseInt(meetingId),
+		        meetingName: meetingName,
+		        creatorID: parseInt(creatorId),
+		        startTime: startTime,
+		        endTime: endTime,
+		        isOpened: isOpened
+		    };
+		
+		    // 如果密码不为空，则更新密码
+		    if (password) {
+		        meetingData.meetingPassword = password;
+		    }
+		
+		    // 发送更新请求
+		    axios.post('/admin/UpdateMeeting', meetingData)
+		        .then(response => {
+		            if (response.data && response.data.code === 1) {
+		                alert('会议更新成功！');
+		                // 关闭模态框
+		                closeEditMeetingModal();
+		                // 重新加载会议列表
+		                loadMeetings();
+		            } else {
+		                alert('更新失败: ' + (response.data ? response.data.msg : '未知错误'));
+		            }
+		        })
+		        .catch(error => {
+		            alert('更新请求失败');
+		            console.error('更新会议请求失败:', error);
+		        });
+		}
+		
+		// 删除会议函数 - 直接作为全局函数
+		function deleteMeeting(meetingId) {
+		    if (confirm('确定要删除会议ID: ' + meetingId + ' 吗？')) {
+		        // 发送删除请求
+		        axios.post('/admin/DeleteMeeting', { meetingID: meetingId })
+		            .then(response => {
+		                if (response.data && response.data.code === 1) {
+		                    alert('删除成功！');
+		                    // 重新加载会议列表
+		                    loadMeetings();
+		                } else {
+		                    alert('删除失败: ' + (response.data ? response.data.msg : '未知错误'));
+		                }
+		            })
+		            .catch(error => {
+		                alert('删除请求失败');
+		                console.error('删除会议请求失败:', error);
+		            });
+		    }
+		}
+		
+		// 关闭编辑会议模态框
+		function closeEditMeetingModal() {
+		    document.getElementById('modal-bg').classList.add('hidden');
+		    document.getElementById('edit-meeting-modal').classList.add('hidden');
+		    // 重置表单
+		    document.getElementById('edit-meeting-form').reset();
+		}
+		
+		
+		
+		// 辅助函数：格式化日期时间
+		function formatDateTime(dateTimeString) {
+		    if (!dateTimeString) return '';
+		    
+		    // 假设 dateTimeString 是 ISO 格式 (如 "2025-06-10T09:30:00")
+		    const date = new Date(dateTimeString);
+		    
+		    // 格式化日期部分 (YYYY-MM-DD)
+		    const year = date.getFullYear();
+		    const month = String(date.getMonth() + 1).padStart(2, '0');
+		    const day = String(date.getDate()).padStart(2, '0');
+		    
+		    // 格式化时间部分 (HH:MM)
+		    const hours = String(date.getHours()).padStart(2, '0');
+		    const minutes = String(date.getMinutes()).padStart(2, '0');
+		    
+		    return `${year}-${month}-${day} ${hours}:${minutes}`;
+		}
+		
+		function setupMeetingSearch() {
+		  // 防止重复绑定
+		  if (isMeetingSearchSetup) return;
+		  
+		  const searchInput = document.getElementById('meeting-search-input');
+		  const searchButton = document.getElementById('search-meeting-btn');
+		  const resetButton = document.getElementById('reset-search-btn-meeting'); // 若添加了重置按钮
+		
+		  // 搜索按钮点击事件
+		  searchButton.addEventListener('click', performMeetingSearch);
+		
+		  // 输入框回车事件
+		  searchInput.addEventListener('keypress', (e) => {
+		    if (e.key === 'Enter') performMeetingSearch();
+		  });
+		
+		  // 重置按钮事件（可选）
+		  if (resetButton) {
+		    resetButton.addEventListener('click', () => {
+		      searchInput.value = '';
+		      loadMeetings(); // 重新加载所有会议
+		    });
+		  }
+		  
+		  // 标记已设置
+		  isMeetingSearchSetup = true;
+		
+		  function performMeetingSearch() {
+		    const meetingId = searchInput.value.trim();
+		    if (!meetingId) {
+		      alert('请输入会议ID');
+		      return;
+		    }
+		
+		    const meetingTableBody = document.getElementById('meeting-table-body');
+		    meetingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">正在搜索会议数据...</td></tr>';
+		
+		    // 发送按ID搜索的请求
+		    axios.post('/admin/SelectMeetingByID', { meetingID: meetingId })
+		      .then((response) => {
+		        if (response.data && response.data.code === 1 && response.data.data) {
+		          meetingTableBody.innerHTML = '';
+		          const meetings = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
+		
+		          if (meetings.length === 0) {
+		            meetingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">未找到匹配的会议</td></tr>';
+		            return;
+		          }
+		
+		          // 获取参与数据并渲染表格（与原逻辑一致）
+		          const meetingIds = meetings.map(m => m.meetingID);
+		          getMeetingsParticipation(meetingIds)
+		            .then((participationMap) => {
+		              meetings.forEach((meeting) => {
+		                const row = document.createElement('tr');
+		                row.className = 'hover:bg-gray-50 transition-custom';
+		
+		                // 格式化时间（需确保有 formatDateTime 函数）
+		                const startTime = formatDateTime(meeting.startTime);
+		                const endTime = formatDateTime(meeting.endTime);
+		
+		                // 获取参与数据
+		                const participation = participationMap[meeting.meetingID] || { total: 0, attended: 0 };
+		
+		                // 状态标签
+		                const statusClass = meeting.isOpened ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+		                const statusText = meeting.isOpened ? '已开启' : '未开启';
+		
+		                // 渲染表格行（注意列顺序与 HTML 一致，移除了地点列）
+		                row.innerHTML = `
+		                  <td class="py-3 px-4 text-sm text-gray-900">${meeting.meetingID}</td>
+		                  <td class="py-3 px-4 text-sm text-gray-900 font-medium">${meeting.meetingName}</td>
+		                  <td class="py-3 px-4 text-sm">${meeting.creatorName || '未知'}</td>
+		                  <td class="py-3 px-4 text-sm text-gray-500">${startTime}</td>
+		                  <td class="py-3 px-4 text-sm text-gray-500">${endTime}</td>
+		                  <td class="py-3 px-4 text-sm">
+		                    <div class="flex items-center space-x-2">
+		                      <span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>
+		                      <button 
+		                        class="text-primary hover:text-primary/80 transition-custom text-sm flex items-center attendance-count" 
+		                        data-id="${meeting.meetingID}"
+		                      >
+		                        ${participation.total}/${participation.attended} <i class="fa-solid fa-users ml-1"></i>
+		                      </button>
+		                    </div>
+		                  </td>
+		                  <td class="py-3 px-4 text-sm">
+		                    <div class="flex space-x-2">
+		                      <button 
+		                        class="text-primary hover:text-primary/80 transition-custom edit-meeting" 
+		                        data-id="${meeting.meetingID}"
+		                      >
+		                        <i class="fa-solid fa-edit"></i>
+		                      </button>
+		                      <button 
+		                        class="text-red-500 hover:text-red-700 transition-custom delete-meeting" 
+		                        data-id="${meeting.meetingID}"
+		                      >
+		                        <i class="fa-solid fa-trash"></i>
+		                      </button>
+		                    </div>
+		                  </td>
+		                `;
+		
+		                meetingTableBody.appendChild(row);
+		              });
+		
+		              setupMeetingActions(); // 绑定编辑/删除事件
+		            })
+		            .catch((error) => {
+		              console.error('获取参与数据失败:', error);
+		              // 渲染会议但参与数据显示为 0/0
+		              meetings.forEach((meeting) => {
+		                // 类似上面的渲染逻辑，但 participation 使用 { total: 0, attended: 0 }
+		              });
+		            });
+		        } else {
+		          meetingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">未找到匹配的会议</td></tr>';
+		        }
+		      })
+		      .catch((error) => {
+		        console.error('搜索失败:', error);
+		        meetingTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">搜索会议数据出错</td></tr>';
+		      });
+		  }
+		}
+    </script>
+</body>
+</html>
+            

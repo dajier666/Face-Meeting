@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ourwork.meetingsystem.Mapper.UserMapper">
+    <!-- 查询用户 -->
+    <select id="selectUserById" resultType="com.ourwork.meetingsystem.Entity.User">
+        SELECT * FROM User WHERE UserID = #{userID}
+    </select>
+
+    <select id="selectUserByUsername" resultType="com.ourwork.meetingsystem.Entity.User">
+        SELECT * FROM User WHERE Username like concat('%',#{username},'%')
+    </select>
+
+    <select id="selectUserByUsername1" resultType="com.ourwork.meetingsystem.Entity.User">
+        SELECT userid, username,password,level FROM User WHERE Username=#{username}
+    </select>
+    <select id="selectTop20Users" resultType="com.ourwork.meetingsystem.Entity.User">
+        SELECT * FROM User
+        LIMIT 20
+    </select>
+    <!-- 添加用户 -->
+    <insert id="insertUser" parameterType="com.ourwork.meetingsystem.Entity.User">
+        INSERT INTO User (Username, Password)
+        VALUES (#{username}, #{password})
+    </insert>
+
+    <!-- 更新用户 -->
+    <update id="updateUser" parameterType="com.ourwork.meetingsystem.Entity.User">
+        UPDATE User
+        SET Username = #{username},
+            level = #{level}
+        WHERE UserID = #{userID}
+    </update>
+
+    <!-- 删除用户 -->
+    <delete id="deleteUser" parameterType="int">
+        DELETE FROM User WHERE UserID = #{userID}
+    </delete>
+</mapper>

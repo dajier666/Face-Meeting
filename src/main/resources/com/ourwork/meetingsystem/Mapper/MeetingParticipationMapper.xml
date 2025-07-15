@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ourwork.meetingsystem.Mapper.MeetingParticipationMapper">
+
+    <!-- 查询参与记录 -->
+    <select id="selectParticipationByUserAndMeeting" resultType="com.ourwork.meetingsystem.Entity.MeetingParticipation">
+        SELECT * FROM MeetingParticipation
+        WHERE UserID = #{userID} AND MeetingID = #{meetingID}
+    </select>
+
+    <select id="selectParticipationByUser" resultType="com.ourwork.meetingsystem.Entity.MeetingParticipation">
+        SELECT * FROM MeetingParticipation
+        WHERE UserID = #{userID}
+    </select>
+
+    <select id="selectParticipationsByMeeting" resultType="com.ourwork.meetingsystem.Entity.MeetingParticipation">
+        SELECT * FROM MeetingParticipation WHERE MeetingID = #{meetingID}
+    </select>
+
+    <!-- 添加参与记录 -->
+    <insert id="insertParticipation" parameterType="com.ourwork.meetingsystem.Entity.MeetingParticipation">
+        INSERT INTO MeetingParticipation (UserID, MeetingID)
+        VALUES (#{userID}, #{meetingID})
+    </insert>
+
+    <!-- 更新参与状态 -->
+    <update id="updateParticipationStatus" parameterType="com.ourwork.meetingsystem.Entity.MeetingParticipation">
+        UPDATE MeetingParticipation
+        SET Status = #{status}
+        WHERE UserID = #{userID} AND MeetingID = #{meetingID}
+    </update>
+
+    <!-- 删除参与记录 -->
+    <delete id="deleteParticipation" parameterType="int">
+        DELETE FROM MeetingParticipation
+        WHERE ParticipationID=#{ParticipationID}
+    </delete>
+
+    <select id="countMeetingParticipants1" resultType="int">
+        SELECT COUNT(*)
+        FROM MeetingParticipation
+        WHERE MeetingID = #{meetingID}
+        <!-- 可选：过滤状态（如只统计已批准或已参加的用户） -->
+        AND Status IN ('pending', 'attended','absent')
+    </select>
+
+    <select id="countMeetingParticipants2" resultType="int">
+        SELECT COUNT(*)
+        FROM MeetingParticipation
+        WHERE MeetingID = #{meetingID}
+        <!-- 可选：过滤状态（如只统计已批准或已参加的用户） -->
+        AND Status = 'attended'
+    </select>
+
+    <select id="selectSignedMembers" resultType="com.ourwork.meetingsystem.Entity.User">
+        SELECT b.UserID,b.Username
+        FROM MeetingParticipation as a,user as b
+        WHERE a.MeetingID = #{meetingID}
+        <!-- 可选：过滤状态（如只统计已批准或已参加的用户） -->
+        AND a.Status = 'attended'
+        AND a.UserID = b.UserID
+    </select>
+
+    <select id="selectRegisterededMembers" resultType="com.ourwork.meetingsystem.Entity.User">
+        SELECT b.UserID,b.Username
+        FROM MeetingParticipation as a,user as b
+        WHERE a.MeetingID = #{meetingID}
+        <!-- 可选：过滤状态（如只统计已批准或已参加的用户） -->
+        AND a.Status IN ('pending', 'attended','absent')
+        AND a.UserID = b.UserID
+    </select>
+</mapper>

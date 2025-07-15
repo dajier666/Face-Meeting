@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<script src="../js/jquery-2.1.0.js"></script>
+<script src="../js/axios-0.18.0.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录和注册</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            transition:.3s;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: url("../img/5b3a49d2b3e657a9.jpg");
+            background-size: cover;
+        }
+
+        .shell {
+            width: 350px;
+            padding: 40px;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            background-color: #ffffff49;
+            border-radius: 50px;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5) inset;
+            transform: translateY(-50px);
+        }
+
+        .title {
+            font-size: 80px;
+            margin-bottom: 30px;
+            color: #fff;
+            text-shadow: 0 0 10px #ff9dff80;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            height: 50px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            color: rgb(0, 0, 0);
+            border: 5px solid transparent;
+            background: rgba(255, 255, 255,.5);
+            border-radius: 100px;
+            padding: 5px 20px 0 20px;
+            transition: 0.3s;
+            font-size: 18px;
+            outline: none
+        }
+
+        input[type="text"]:hover,
+        input[type="password"]:hover {
+            background: rgba(255, 255, 255, 0);
+            border: 5px solid #ffffff;
+        }
+
+        input[type="submit"] {
+            width: 100%;
+            height: 50px;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 100px;
+            border: none;
+            background-color: #f7d6ff;
+            color: #fff;
+            cursor: pointer;
+            font-size: 20px;
+            letter-spacing: 3px;
+        }
+
+        input::placeholder {
+            color: #92A7E8;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .Remember {
+            opacity: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            color: #7597ff;
+        }
+
+        input[type="checkbox"] {
+            display: block;
+            width: 25px;
+            height: 25px;
+            margin-right: 10px;
+            background-color: #007bff;
+        }
+
+        #Password {
+            border: none;
+            background-color: #ffffff00;
+            color: #7597ff;
+            font-size: 18px;
+        }
+        .Password {
+            border: none;
+            background-color: #ffffff00;
+            color: #7597ff;
+            font-size: 18px;
+        }
+        
+        /* 摄像头组件样式 */
+        .camera-container {
+            width: 100%;
+            margin: 15px 0;
+            position: relative;
+            display: none;
+        }
+        
+        #camera-preview {
+            width: 100%;
+            height: 200px;
+            background-color: #000;
+            border-radius: 20px;
+            object-fit: cover;
+        }
+        
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .camera-btn {
+            padding: 10px 20px;
+            border-radius: 50px;
+            border: none;
+            background-color: #f7d6ff;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #photo-preview {
+            width: 100%;
+            height: 200px;
+            background-color: #000;
+            border-radius: 20px;
+            object-fit: cover;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+<div class="shell">
+    <h2 class="title">登录</h2>
+    <input type="text" id="username" placeholder="用户名">
+    <input type="password" id="password" placeholder="密码">
+    
+    <!-- 摄像头组件 -->
+    <div class="camera-container" id="cameraContainer">
+        <video id="camera-preview" autoplay></video>
+        <img id="photo-preview" src="" alt="照片预览">
+        <div class="camera-controls">
+            <button class="camera-btn" id="take-photo">拍照</button>
+            <button class="camera-btn" id="use-photo" style="display: none;">使用此照片</button>
+            <button class="camera-btn" id="retake-photo" style="display: none;">重新拍摄</button>
+        </div>
+    </div>
+    
+	<input type="submit" value="登录" id="loginBtn" onclick="AppState.handleFormSubmit()">
+	<div class="footer">
+		<div class="Remember">
+			<input type="checkbox" id="rememberMe">
+			<label for="rememberMe">记住我</label>
+		</div>
+		<button id="Password" onclick="AppState.toggleFormMode()">去注册</button>
+	</div>
+</div>
+
+<script>
+    // 应用状态管理
+    const AppState = {
+        isRegistrationMode: false,
+        stream: null,
+        capturedImage: null,
+        
+        // 初始化应用
+        init() {
+            console.log('应用初始化...');
+            document.addEventListener('keypress', (e) => {
+				if (e.keyCode === 13 || e.which === 13) {
+					this.handleFormSubmit();
+				}
+			});
+			// 绑定拍照按钮
+			document.getElementById('take-photo').addEventListener('click', () => {
+				console.log('点击了拍照按钮');
+				this.takePhoto();
+			});
+			
+			// 绑定使用照片按钮
+			document.getElementById('use-photo').addEventListener('click', () => {
+				console.log('点击了使用照片按钮');
+				alert("照片已确认，可提交注册");
+			});
+			
+			// 绑定重新拍摄按钮
+			document.getElementById('retake-photo').addEventListener('click', () => {
+				console.log('点击了重新拍摄按钮');
+				this.resetCameraPreview();
+			});
+            console.log('事件绑定完成');
+        },
+        
+        
+		
+		
+		handleFormSubmit() {
+		            if (this.isRegistrationMode) {
+		                this.register();
+		            } else {
+		                this.login();
+		            }
+		        },
+        
+        // 切换表单模式
+        toggleFormMode() {
+                    const title = document.querySelector('.title');
+                    const loginBtn = document.getElementById('loginBtn');
+                    const rememberMeLabel = document.querySelector('.Remember');
+                    const passwordBtn = document.getElementById('Password');
+                    const cameraContainer = document.getElementById('cameraContainer');
+        
+                    this.isRegistrationMode = !this.isRegistrationMode;
+        
+                    if (this.isRegistrationMode) {
+                        title.innerText = '注册';
+                        loginBtn.value = '注册';
+                        rememberMeLabel.style.opacity = '0';
+                        passwordBtn.innerText = '去登录';
+                        cameraContainer.style.display = 'block';
+                        this.startCamera();
+                    } else {
+                        title.innerText = '登录';
+                        loginBtn.value = '登录';
+                        rememberMeLabel.style.opacity = '1';
+                        passwordBtn.innerText = '去注册';
+                        cameraContainer.style.display = 'none';
+                        this.stopCamera();
+                    }
+                },
+
+        
+        // 登录功能
+        login() {
+            console.log('执行登录操作');
+            const username = $.trim($("#username").val());
+            const password = $.trim($("#password").val());
+
+            axios.post('/login/login', { username: username, password: password })
+                .then(result => {
+                    if (result.data.code == 1) {
+                        alert("登录成功!");
+                        const jwtToken = result.data.data.username; // 从返回的user对象中获取jwt令牌
+                        this.setCookie('token', jwtToken, 1);
+
+                        // 根据用户权限跳转到不同页面
+                        if (result.data.data.userID === 0) {
+                            window.location.href = 'http://localhost:8080/user'; // 普通用户跳转
+                        } else {
+                            window.location.href = 'http://localhost:8080/admin'; // 管理员跳转
+                        }
+                    } else {
+                        alert("账号或用户名错误!");
+                    }
+                    console.log('登录请求成功:', result);
+                })
+                .catch(error => {
+                    console.error('登录请求失败:', error);
+                });
+        },
+        
+        // 注册功能
+        register() {
+            console.log('执行注册操作');
+            const username = $.trim($("#username").val());
+            const password = $.trim($("#password").val());
+            
+            // 检查照片是否已拍摄
+            if (!this.capturedImage) {
+                alert("请先拍摄照片");
+                return;
+            }
+
+            // 构建注册数据，包含照片
+            const registerData = {
+                username: username,
+                password: password,
+                face: this.capturedImage // 照片的 base64 数据
+            };
+
+            axios.post('/login/register', registerData)
+                .then(result => {
+                    if (result.data.code == 1) {
+                        alert("注册成功!");
+                        // 重置相机状态
+                        this.resetCamera();
+                        // 切换回登录模式
+                        this.toggleFormMode();
+                    } else {
+                        alert(result.data.msg);
+                    }
+                    console.log('注册请求成功:', result);
+                })
+        },
+		
+        
+        // 设置Cookie
+        setCookie(name, value, days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + value + ";" + expires + ";path=/";
+        },
+        
+        // 启动摄像头
+        startCamera() {
+            console.log('启动摄像头');
+            const video = document.getElementById('camera-preview');
+            const photoPreview = document.getElementById('photo-preview');
+            const takePhotoBtn = document.getElementById('take-photo');
+            const usePhotoBtn = document.getElementById('use-photo');
+            const retakePhotoBtn = document.getElementById('retake-photo');
+            
+            // 重置显示状态
+            video.style.display = 'block';
+            photoPreview.style.display = 'none';
+            takePhotoBtn.style.display = 'block';
+            usePhotoBtn.style.display = 'none';
+            retakePhotoBtn.style.display = 'none';
+            
+            // 访问摄像头
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(mediaStream => {
+                        this.stream = mediaStream;
+                        video.srcObject = mediaStream;
+                        video.onloadedmetadata = () => {
+                            video.play();
+                            console.log('摄像头已启动');
+                        };
+                    })
+                    .catch(err => {
+                        console.error("摄像头访问失败: " + err);
+                        alert("无法访问摄像头，请确保您的设备有摄像头并且已授予权限");
+                    });
+            } else {
+                alert("您的浏览器不支持摄像头API");
+            }
+        },
+        
+        // 停止摄像头
+        stopCamera() {
+            if (this.stream) {
+                this.stream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                this.stream = null;
+                console.log('摄像头已停止');
+            }
+        },
+        
+        // 拍照
+        takePhoto() {
+            const video = document.getElementById('camera-preview');
+            const photoPreview = document.getElementById('photo-preview');
+            const takePhotoBtn = document.getElementById('take-photo');
+            const usePhotoBtn = document.getElementById('use-photo');
+            const retakePhotoBtn = document.getElementById('retake-photo');
+            
+            // 创建画布并捕获当前帧
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // 转换为base64格式
+            this.capturedImage = canvas.toDataURL('image/jpeg');
+
+            
+            // 更新预览
+            photoPreview.src = this.capturedImage;
+            video.style.display = 'none';
+            photoPreview.style.display = 'block';
+            takePhotoBtn.style.display = 'none';
+            usePhotoBtn.style.display = 'block';
+            retakePhotoBtn.style.display = 'block';
+            
+            console.log('照片已拍摄');
+        },
+        
+        // 重置相机预览
+        resetCameraPreview() {
+            const video = document.getElementById('camera-preview');
+            const photoPreview = document.getElementById('photo-preview');
+            const takePhotoBtn = document.getElementById('take-photo');
+            const usePhotoBtn = document.getElementById('use-photo');
+            const retakePhotoBtn = document.getElementById('retake-photo');
+            
+            video.style.display = 'block';
+            photoPreview.style.display = 'none';
+            takePhotoBtn.style.display = 'block';
+            usePhotoBtn.style.display = 'none';
+            retakePhotoBtn.style.display = 'none';
+            
+            this.capturedImage = null;
+            console.log('相机预览已重置');
+        },
+        
+        // 重置相机状态
+        resetCamera() {
+            this.stopCamera();
+            this.resetCameraPreview();
+        }
+    };
+    
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', () => {
+        AppState.init();
+        console.log('DOM加载完成，应用已初始化');
+    });
+</script>
+</body>
+</html>
+    

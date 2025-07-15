@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ourwork.meetingsystem.Mapper.MeetingMapper">
+
+    <!-- 查询会议 -->
+    <select id="selectMeetingById" resultType="com.ourwork.meetingsystem.Entity.Meeting">
+        SELECT * FROM Meeting WHERE MeetingID = #{meetingID}
+    </select>
+
+    <select id="selectMeetingsByCreator" resultType="com.ourwork.meetingsystem.Entity.Meeting">
+        SELECT * FROM Meeting WHERE CreatorID = #{creatorID}
+    </select>
+
+    <select id="selectAllMeetings" resultType="com.ourwork.meetingsystem.Entity.Meeting">
+        SELECT * FROM Meeting
+    </select>
+
+    <!-- 添加会议 -->
+    <insert id="insertMeeting" parameterType="com.ourwork.meetingsystem.Entity.Meeting">
+        INSERT INTO Meeting (MeetingName, CreatorID, StartTime,
+                             EndTime, MeetingPassword)
+        VALUES (#{meetingName}, #{creatorID}, #{startTime},
+                #{endTime}, #{meetingPassword})
+    </insert>
+
+    <!-- 更新会议 -->
+    <update id="updateMeeting" parameterType="com.ourwork.meetingsystem.Entity.Meeting">
+        UPDATE Meeting
+        <set>
+         <if test="meetingName != null">MeetingName = #{meetingName},</if>
+            <if test="startTime != null">StartTime = #{startTime},</if>
+            <if test="endTime != null">EndTime = #{endTime},</if>
+            <if test="meetingPassword != null">MeetingPassword = #{meetingPassword},</if>
+            <if test="isOpened != null">IsOpened = #{isOpened},</if>
+        </set>
+        WHERE MeetingID = #{meetingID}
+    </update>
+
+    <!-- 删除会议 -->
+    <delete id="deleteMeeting" parameterType="int">
+        DELETE FROM Meeting WHERE MeetingID = #{meetingID}
+    </delete>
+
+    <select id="selectAllMeetingsOpened" resultType="com.ourwork.meetingsystem.Entity.Meeting">
+        SELECT * FROM Meeting WHERE IsOpened=1
+    </select>
+
+    <select id="selectAllMeetingsCanSignUp" resultType="com.ourwork.meetingsystem.Entity.Meeting">
+
+    </select>
+</mapper>
